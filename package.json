@@ -1,0 +1,10 @@
+{
+  "name": "parcelles-tracker-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "check": "node --check api/_lib/auth.mjs && node --check api/communes.mjs && node --check api/parcelles.mjs && node --check api/cadastre.mjs && node --check api/urbanisme.mjs && node --check api/login.mjs && node --check public/app.js"
+  }
+}

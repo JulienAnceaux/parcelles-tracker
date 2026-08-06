@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Veille foncière des parcelles détenues par des personnes morales.">
+    <title>Parcelles Tracker</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main id="login" class="login-shell" hidden>
+      <section class="login-card">
+        <p class="eyebrow">JAC DIGITAL</p>
+        <h1>Parcelles<br>Tracker</h1>
+        <p class="muted">Identifiez et qualifiez des opportunités foncières à partir des données cadastrales ouvertes.</p>
+        <form id="login-form">
+          <label for="password">Mot de passe</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button type="submit">Accéder à l’espace</button>
+          <p id="login-error" class="error" role="alert"></p>
+        </form>
+      </section>
+    </main>
+
+    <main id="app" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">VEILLE FONCIÈRE</p>
+          <h1>Parcelles Tracker</h1>
+        </div>
+        <button id="logout" class="ghost">Déconnexion</button>
+      </header>
+
+      <section class="hero">
+        <div>
+          <h2>Rechercher une commune</h2>
+          <p>Les résultats concernent les parcelles rattachées à des personnes morales. Ils ne constituent pas une preuve de constructibilité.</p>
+        </div>
+        <div class="commune-search">
+          <label for="commune">Commune</label>
+          <input id="commune" autocomplete="off" placeholder="Ex. Pontoise, Versailles, Nantes…">
+          <div id="suggestions" class="suggestions" hidden></div>
+        </div>
+      </section>
+
+      <section id="empty" class="empty">
+        <p>Sélectionnez une commune pour commencer l’analyse.</p>
+      </section>
+
+      <section id="workspace" hidden>
+        <div class="summary">
+          <div class="metric"><span>Commune</span><strong id="metric-commune">—</strong></div>
+          <div class="metric"><span>Parcelles chargées</span><strong id="metric-loaded">0</strong></div>
+          <div class="metric"><span>Parcelles affichées</span><strong id="metric-filtered">0</strong></div>
+          <div class="metric warning"><span>Résultats incomplets</span><strong id="metric-truncated">Non</strong></div>
+        </div>
+
+        <div class="notice">
+          <strong>Attention :</strong> « Terrain à bâtir » correspond ici à la nature cadastrale AB. Une vérification du PLU/PLUi reste indispensable.
+        </div>
+
+        <div class="filters">
+          <input id="text-filter" placeholder="Propriétaire, adresse, SIREN ou parcelle">
+          <select id="nature-filter">
+            <option value="PROSPECTION" selected>Terrain à bâtir + Jardin + Agrément (prospection)</option>
+            <option value="">Toutes les natures</option>
+            <option value="AB">Terrain à bâtir (cadastre)</option>
+            <option value="J">Jardin</option>
+            <option value="AG">Terrain d’agrément</option>
+            <option value="AGRICOLE">Terre ou pré</option>
+            <option value="BOISE">Parcelle boisée</option>
+            <option value="AUTRE">Autre nature cadastrale</option>
+          </select>
+          <select id="owner-filter">
+            <option value="private" selected>Cibles privées probables</option>
+            <option value="immobilier">SCI, SCCV et immobilier</option>
+            <option value="public">Public et parapublic</option>
+            <option value="association">Associations</option>
+            <option value="all">Toutes les personnes morales</option>
+          </select>
+          <label class="surface">Surface min. <input id="surface-filter" type="number" min="0" value="150"> m²</label>
+          <label class="rights-toggle"><input id="owner-only-filter" type="checkbox"> Uniquement propriétaires déclarés</label>
+          <select id="statut-filter">
+            <option value="">Tous les statuts</option>
+            <option value="a_etudier">À étudier</option>
+            <option value="contacte">Contacté</option>
+            <option value="rdv">RDV pris</option>
+            <option value="sans_interet">Sans intérêt</option>
+            <option value="mandat">Mandat signé</option>
+          </select>
+          <button id="export" class="secondary">Exporter CSV</button>
+        </div>
+
+        <p id="status" class="status" role="status"></p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Priorité</th>
+                <th>Catégorie cadastrale</th>
+                <th>Adresse</th>
+                <th>Parcelle</th>
+                <th>Surface</th>
+                <th>Titulaire déclaré</th>
+                <th>Type</th>
+                <th>Forme</th>
+                <th>Droit</th>
+                <th>Statut</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="parcel-dialog" class="parcel-dialog">
+      <form method="dialog" class="dialog-head">
+        <div>
+          <p class="eyebrow">FICHE PARCELLE</p>
+          <h2 id="detail-title">Parcelle</h2>
+        </div>
+        <button class="dialog-close" aria-label="Fermer">×</button>
+      </form>
+      <div class="detail-grid">
+        <div><span>Commune</span><strong id="detail-commune">—</strong></div>
+        <div><span>Référence cadastrale</span><strong id="detail-parcelle">—</strong></div>
+        <div><span>Adresse</span><strong id="detail-adresse">—</strong></div>
+        <div><span>Surface</span><strong id="detail-surface">—</strong></div>
+        <div><span>Catégorie cadastrale</span><strong id="detail-categorie">—</strong><span id="detail-bati-warning" class="bati-badge" hidden>⚠ Déjà bâti</span></div>
+        <div><span>Titulaire déclaré</span><strong id="detail-titulaire">—</strong></div>
+        <div><span>Qualification</span><strong id="detail-type">—</strong></div>
+        <div><span>SIREN / identifiant source</span><strong id="detail-siren">—</strong></div>
+      </div>
+      <section class="tracking-card" aria-labelledby="tracking-title">
+        <div class="parcel-shape-head">
+          <strong id="tracking-title">Suivi de prospection</strong>
+          <span id="tracking-updated">Jamais mis à jour</span>
+        </div>
+        <div class="tracking-body">
+          <label for="tracking-statut">Statut</label>
+          <select id="tracking-statut">
+            <option value="a_etudier">À étudier</option>
+            <option value="contacte">Contacté</option>
+            <option value="rdv">RDV pris</option>
+            <option value="sans_interet">Sans intérêt</option>
+            <option value="mandat">Mandat signé</option>
+          </select>
+          <label for="tracking-notes">Notes</label>
+          <textarea id="tracking-notes" rows="4" placeholder="Dirigeant identifié, suite à donner…"></textarea>
+        </div>
+      </section>
+      <div id="detail-map-wrap" class="detail-map-wrap">
+        <div class="parcel-shape-card">
+          <div class="parcel-shape-head">
+            <strong>Emprise cadastrale</strong>
+            <span>Source IGN · PCI</span>
+          </div>
+          <div id="detail-map-status" class="parcel-map-status">Chargement de la parcelle…</div>
+          <svg id="detail-parcel-svg" class="parcel-svg" viewBox="0 0 800 360" role="img" aria-label="Emprise cadastrale de la parcelle" hidden></svg>
+        </div>
+        <p class="muted">Contour cadastral officiel. Il ne constitue pas une preuve de constructibilité.</p>
+      </div>
+      <section class="urbanisme-card" aria-labelledby="urbanisme-title">
+        <div class="parcel-shape-head">
+          <strong id="urbanisme-title">Zonage du document d’urbanisme</strong>
+          <span>Source officielle IGN · GPU</span>
+        </div>
+        <div id="detail-urbanisme-status" class="urbanisme-status">Chargement du zonage…</div>
+        <div id="detail-urbanisme-zones" class="urbanisme-zones" hidden></div>
+      </section>
+      <div class="detail-links">
+        <a id="detail-pappers" class="detail-link" target="_blank" rel="noopener noreferrer">Consulter Pappers</a>
+        <button id="detail-copy-parcel" class="detail-link" type="button">Copier la référence cadastrale</button>
+        <a id="detail-urbanisme" class="detail-link" href="https://www.geoportail-urbanisme.gouv.fr/map/" target="_blank" rel="noopener noreferrer">Ouvrir le Géoportail à cet emplacement</a>
+        <a id="detail-osm" class="detail-link" target="_blank" rel="noopener noreferrer">Ouvrir la carte</a>
+      </div>
+      <p class="detail-help">Le zonage affiché ci-dessus est recherché directement à partir du contour officiel de la parcelle. Le Géoportail reste disponible pour approfondir les prescriptions.</p>
+      <div class="notice detail-notice">
+        La catégorie cadastrale ne prouve pas la constructibilité. Vérifiez le document d’urbanisme, les servitudes et les risques avant toute prospection.
+      </div>
+    </dialog>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
