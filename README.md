@@ -26,3 +26,7 @@ Copier `.env.example` vers `.env.local`, puis définir :
 ## Prochaine étape
 
 Ajouter une base PostgreSQL pour les comptes, listes, statuts, notes et historiques, puis connecter le zonage du Géoportail de l’Urbanisme.
+
+## Déploiement
+
+Vercel, projet `parcelles-tracker`, équipe `jac-digital`. [parcelles-tracker.vercel.app](https://parcelles-tracker.vercel.app)
